@@ -1,0 +1,313 @@
+package com.example.rectifierBackend.controller;
+
+import com.example.rectifierBackend.model.Bath;
+import com.example.rectifierBackend.model.Process;
+import com.example.rectifierBackend.model.User;
+import com.example.rectifierBackend.repository.BathRepository;
+import com.example.rectifierBackend.repository.ProcessRepository;
+import com.example.rectifierBackend.repository.SampleRepository;
+import com.example.rectifierBackend.service.RectifierService;
+import com.lowagie.text.Cell;
+import com.lowagie.text.Image;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.alignment.HorizontalAlignment;
+import com.lowagie.text.alignment.VerticalAlignment;
+import org.apache.catalina.connector.ClientAbortException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.knowm.xchart.XYChart;
+import org.knowm.xchart.XYSeries;
+import org.knowm.xchart.style.markers.Marker;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
+import javax.imageio.ImageIO;
+import javax.validation.Valid;
+import java.awt.*;
+import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.Timestamp;
+import java.util.List;
+
+@RequestMapping("/process")
+@RestController
+@CrossOrigin
+public class ProcessController {
+
+    private final ProcessRepository processRepository;
+    private final BathRepository bathRepository;
+    private final SampleRepository sampleRepository;
+    private final RectifierService rectifierService;
+    private final Log logger = LogFactory.getLog(getClass());
+
+    public ProcessController(ProcessRepository processRepository,
+                             BathRepository bathRepository,
+                             SampleRepository sampleRepository,
+                             RectifierService rectifierService) {
+        this.processRepository = processRepository;
+        this.bathRepository = bathRepository;
+        this.sampleRepository = sampleRepository;
+        this.rectifierService = rectifierService;
+    }
+
+    @GetMapping("{processId}")
+    ResponseEntity<?> getOne(@PathVariable long processId) {
+        Process process = processRepository
+                .findById(processId)
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Process not found.")
+                );
+        return ResponseEntity.ok(process);
+    }
+
+    @GetMapping("{processId}/samples")
+    ResponseEntity<?> getSamples(@PathVariable long processId) {
+        return ResponseEntity.ok(sampleRepository
+                .findAllByProcessIdOrderByTimestampAsc(processId)
+        );
+    }
+
+    @DeleteMapping("{processId}")
+    ResponseEntity<?> delete(@PathVariable long processId) {
+        processRepository.deleteById(processId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("")
+    ResponseEntity<?> add(@RequestBody Process process) {
+        processRepository.save(process);
+        return ResponseEntity.ok(process);
+    }
+
+    @GetMapping("")
+    ResponseEntity<?> getAll() {
+        return ResponseEntity.ok(processRepository.findAll());
+    }
+
+    @GetMapping("byStart/{start}/{end}")
+    ResponseEntity<?> getByStart(@PathVariable Timestamp start, @PathVariable Timestamp stop) {
+        return ResponseEntity.ok(processRepository.findByStartTimestampBetween(start, stop));
+    }
+
+    @GetMapping("byStop/{start}/{end}")
+    ResponseEntity<?> getByEnd(@PathVariable Timestamp start, @PathVariable Timestamp stop) {
+        return ResponseEntity.ok(processRepository.findByStopTimestampBetween(start, stop));
+    }
+
+    @GetMapping("byRanAt/{time}")
+    ResponseEntity<?> getByRanAt(@PathVariable Timestamp time) {
+        return ResponseEntity.ok(processRepository.findByStartTimestampLessThanAndStopTimestampGreaterThan(time, time));
+    }
+
+//    @GetMapping("byOrderId/{id}")
+//    ResponseEntity<?> getByOrderId(@PathVariable long id) {
+//        return ResponseEntity.ok(processRepository.findByOrderId(id));
+//    }
+
+    @PostMapping("/start")
+    ResponseEntity<?> startProcess(@Valid @RequestBody Process process) {
+        User user = User.getCurrentUser().orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED)
+        );
+        Bath bath = bathRepository
+                .findById(process.getBathId())
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bath not found")
+                );
+//        if(bath.getUser() == null || bath.getUser().getId() != user.getId()) {
+//            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bath not occupied by current user");
+//        }
+        if (bath.getProcess() != null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "A process is already started for this bath");
+        }
+
+        bath.setProcess(process);
+        process.setOperator(user);
+        processRepository.save(process);
+        bathRepository.save(bath);
+        rectifierService.startProcess(process.getId());
+        return ResponseEntity.ok(process);
+    }
+
+    @PostMapping("/{processId}/stop")
+    ResponseEntity<?> stopProcess(@PathVariable long processId) {
+        User user = User.getCurrentUser().orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED)
+        );
+
+        Process process = processRepository
+                .findById(processId)
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Process not found.")
+                );
+        Bath bath = bathRepository
+                .findById(process.getBathId())
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bath not found.")
+                );
+        if (process.getOperator() == null || process.getOperator().getId() != user.getId()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Process not started by current user");
+        }
+        rectifierService.stopProcess(processId);
+        bath.setProcess(null);
+        bathRepository.save(bath);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping(value = "/{processId}/liveSamples", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public ResponseEntity<StreamingResponseBody> liveSamples(@PathVariable long processId) {
+        StreamingResponseBody responseBody = (OutputStream outputStream) -> {
+            try {
+                rectifierService.writeSamples(outputStream, processId);
+            } catch (ClientAbortException cae) {
+                logger.info("Client disconnected while streaming.");
+            } catch (Exception e) {
+                logger.error("Error while streaming.", e);
+            }
+            outputStream.close();
+        };
+        return ResponseEntity.status(HttpStatus.OK)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE)
+                .body(responseBody);
+    }
+
+    private Image createChart(List<?> xData, List<? extends Number> yData, String title, String unit) throws IOException {
+        XYChart chart = new XYChart(750, 300);
+        chart.setTitle(title);
+        chart.setXAxisTitle("Czas");
+        chart.setYAxisTitle(title + " [" + unit + "]");
+        chart.getStyler().setLegendVisible(false);
+        XYSeries series = chart.addSeries(title, xData, yData);
+        series.setMarker(new Marker() {
+            @Override
+            public void paint(Graphics2D graphics2D, double v, double v1, int i) {
+
+            }
+        });
+
+        series.setLabel("label");
+
+        double scaleFactor = 3;
+        float finalScaleFactor = 0.7f;
+
+        BufferedImage bufferedImage =
+                new BufferedImage(
+                        (int) (chart.getWidth() * scaleFactor),
+                        (int) (chart.getHeight() * scaleFactor),
+                        BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics2D = bufferedImage.createGraphics();
+
+        AffineTransform at = graphics2D.getTransform();
+        at.scale(scaleFactor, scaleFactor);
+        graphics2D.setTransform(at);
+        chart.paint(graphics2D, chart.getWidth(), chart.getHeight());
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        ImageIO.write(bufferedImage, "png", baos);
+
+        Image image = Image.getInstance(baos.toByteArray());
+        image.scaleAbsolute(chart.getWidth() * finalScaleFactor, (float) chart.getHeight() * finalScaleFactor);
+        return image;
+    }
+
+    private Cell textToCell(String text, HorizontalAlignment horizontalAlignment) {
+        Paragraph paragraph = new Paragraph(text);
+        paragraph.getFont().setSize(8);
+        Cell cell = new Cell(paragraph);
+        cell.setHorizontalAlignment(horizontalAlignment);
+        cell.setVerticalAlignment(VerticalAlignment.TOP);
+        cell.setBorder(Cell.NO_BORDER);
+        return cell;
+    }
+
+//    @GetMapping(value = "{processId}/report", produces = MediaType.APPLICATION_PDF_VALUE)
+//    ResponseEntity<StreamingResponseBody> testReport(@PathVariable long processId) {
+//        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//        Process process = processRepository.findById(processId).orElseThrow(
+//                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Process not found.")
+//        );
+//        StreamingResponseBody responseBody = (OutputStream outputStream) -> {
+//            BaseFont bf = BaseFont.createFont(BaseFont.HELVETICA, "Cp1252", false);
+//            Document document = new Document();
+//            PdfWriter.getInstance(document, outputStream);
+//            HeaderFooter header = new HeaderFooter(
+//                    new Phrase("Technologie Galwaniczne - Raport", new Font(bf)), false);
+//            header.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+//            document.setHeader(header);
+//            document.open();
+//            Table table = new Table(4);
+//            table.setWidth(90);
+//            table.setHorizontalAlignment(HorizontalAlignment.JUSTIFIED);
+//            table.setPadding(2);
+//            table.addCell(textToCell("Stanowisko:", HorizontalAlignment.RIGHT));
+//            table.addCell(textToCell(process.getBath().getId()+"", HorizontalAlignment.LEFT));
+//            table.addCell(textToCell(dateFormat.format(process.getStartTimestamp()), HorizontalAlignment.CENTER));
+//            table.addCell(textToCell(dateFormat.format(process.getStopTimestamp()), HorizontalAlignment.CENTER));
+//            Cell separatorCell = new Cell();
+//            separatorCell.setColspan(4);
+//            table.addCell(separatorCell);
+//            table.addCell(textToCell("Firma:", HorizontalAlignment.RIGHT));
+//            table.addCell(textToCell(process.getOrder().getClient().getCompanyName(), HorizontalAlignment.LEFT));
+//            table.addCell(textToCell("Detal:", HorizontalAlignment.RIGHT));
+//            table.addCell(textToCell(process.getElement().getName(), HorizontalAlignment.LEFT));
+//            table.addCell(textToCell("Operator:", HorizontalAlignment.RIGHT));
+//            table.addCell(textToCell(process.getOperator().getUsername(), HorizontalAlignment.LEFT));
+//            table.addCell(textToCell("Zamowienie:", HorizontalAlignment.RIGHT));
+//            table.addCell(textToCell(process.getOrder().getName(), HorizontalAlignment.LEFT));
+//            String description = process.getDescription();
+//            if(description == null) {
+//                description = "";
+//            }
+//            Cell descriptionCell = textToCell("Opis: " + description, HorizontalAlignment.LEFT);
+//            descriptionCell.setColspan(4);
+//            table.addCell(separatorCell);
+//            table.addCell(descriptionCell);
+//            document.add(table);
+//
+////            document.add(new Paragraph("Id: " + process.getId()));
+////            document.add(new Paragraph("Opis: " + process.getDescription()));
+////            document.add(new Paragraph("Początek: " + process.getStartTimestamp()));
+////            document.add(new Paragraph("Koniec: " + process.getStopTimestamp()));
+//            List<Sample> samples = sampleRepository.findAllByProcessIdOrderByTimestampAsc(process.getId());
+//            List<Double> voltages = new ArrayList<>(samples.size());
+//            List<Double> currents = new ArrayList<>(samples.size());
+//            List<Double> temperatures = new ArrayList<>(samples.size());
+//            List<Timestamp> timestamps = new ArrayList<>(samples.size());
+//            for (Sample sample : samples) {
+//                voltages.add(sample.getVoltage());
+//                currents.add(sample.getCurrent());
+//                temperatures.add(sample.getTemperature());
+//                timestamps.add(sample.getTimestamp());
+//            }
+//
+//            Image voltageChart = createChart(timestamps, voltages, "Napięcie", "V");
+//            Image currentChart = createChart(timestamps, currents, "Prąd", "A");
+//            Image temperatureChart = createChart(timestamps, temperatures, "Temperatura", "°C");
+//
+//            voltageChart.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+//            currentChart.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+//            temperatureChart.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+//
+//            Paragraph graphs = new Paragraph();
+//            graphs.add(voltageChart);
+//            graphs.add(currentChart);
+//            graphs.add(temperatureChart);
+//            document.add(graphs);
+//            document.close();
+//        };
+//        return ResponseEntity.status(HttpStatus.OK)
+//                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE)
+//                .header(HttpHeaders.CONTENT_DISPOSITION, "inline;")// filename=\"Raport" + process.getId() + ".pdf\"")
+//                .body(responseBody);
+//    }
+
+}
