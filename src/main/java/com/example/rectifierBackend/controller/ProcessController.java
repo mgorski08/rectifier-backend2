@@ -15,9 +15,6 @@ import com.lowagie.text.alignment.VerticalAlignment;
 import org.apache.catalina.connector.ClientAbortException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.knowm.xchart.XYChart;
-import org.knowm.xchart.XYSeries;
-import org.knowm.xchart.style.markers.Marker;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -162,23 +159,8 @@ public class ProcessController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping(value = "/{processId}/liveSamples", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public ResponseEntity<StreamingResponseBody> liveSamples(@PathVariable long processId) {
-        StreamingResponseBody responseBody = (OutputStream outputStream) -> {
-            try {
-                rectifierService.writeSamples(outputStream, processId);
-            } catch (ClientAbortException cae) {
-                logger.info("Client disconnected while streaming.");
-            } catch (Exception e) {
-                logger.error("Error while streaming.", e);
-            }
-            outputStream.close();
-        };
-        return ResponseEntity.status(HttpStatus.OK)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE)
-                .body(responseBody);
-    }
 
+/*
     private Image createChart(List<?> xData, List<? extends Number> yData, String title, String unit) throws IOException {
         XYChart chart = new XYChart(750, 300);
         chart.setTitle(title);
@@ -229,85 +211,85 @@ public class ProcessController {
         return cell;
     }
 
-//    @GetMapping(value = "{processId}/report", produces = MediaType.APPLICATION_PDF_VALUE)
-//    ResponseEntity<StreamingResponseBody> testReport(@PathVariable long processId) {
-//        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-//        Process process = processRepository.findById(processId).orElseThrow(
-//                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Process not found.")
-//        );
-//        StreamingResponseBody responseBody = (OutputStream outputStream) -> {
-//            BaseFont bf = BaseFont.createFont(BaseFont.HELVETICA, "Cp1252", false);
-//            Document document = new Document();
-//            PdfWriter.getInstance(document, outputStream);
-//            HeaderFooter header = new HeaderFooter(
-//                    new Phrase("Technologie Galwaniczne - Raport", new Font(bf)), false);
-//            header.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
-//            document.setHeader(header);
-//            document.open();
-//            Table table = new Table(4);
-//            table.setWidth(90);
-//            table.setHorizontalAlignment(HorizontalAlignment.JUSTIFIED);
-//            table.setPadding(2);
-//            table.addCell(textToCell("Stanowisko:", HorizontalAlignment.RIGHT));
-//            table.addCell(textToCell(process.getBath().getId()+"", HorizontalAlignment.LEFT));
-//            table.addCell(textToCell(dateFormat.format(process.getStartTimestamp()), HorizontalAlignment.CENTER));
-//            table.addCell(textToCell(dateFormat.format(process.getStopTimestamp()), HorizontalAlignment.CENTER));
-//            Cell separatorCell = new Cell();
-//            separatorCell.setColspan(4);
-//            table.addCell(separatorCell);
-//            table.addCell(textToCell("Firma:", HorizontalAlignment.RIGHT));
-//            table.addCell(textToCell(process.getOrder().getClient().getCompanyName(), HorizontalAlignment.LEFT));
-//            table.addCell(textToCell("Detal:", HorizontalAlignment.RIGHT));
-//            table.addCell(textToCell(process.getElement().getName(), HorizontalAlignment.LEFT));
-//            table.addCell(textToCell("Operator:", HorizontalAlignment.RIGHT));
-//            table.addCell(textToCell(process.getOperator().getUsername(), HorizontalAlignment.LEFT));
-//            table.addCell(textToCell("Zamowienie:", HorizontalAlignment.RIGHT));
-//            table.addCell(textToCell(process.getOrder().getName(), HorizontalAlignment.LEFT));
-//            String description = process.getDescription();
-//            if(description == null) {
-//                description = "";
-//            }
-//            Cell descriptionCell = textToCell("Opis: " + description, HorizontalAlignment.LEFT);
-//            descriptionCell.setColspan(4);
-//            table.addCell(separatorCell);
-//            table.addCell(descriptionCell);
-//            document.add(table);
-//
-////            document.add(new Paragraph("Id: " + process.getId()));
-////            document.add(new Paragraph("Opis: " + process.getDescription()));
-////            document.add(new Paragraph("Początek: " + process.getStartTimestamp()));
-////            document.add(new Paragraph("Koniec: " + process.getStopTimestamp()));
-//            List<Sample> samples = sampleRepository.findAllByProcessIdOrderByTimestampAsc(process.getId());
-//            List<Double> voltages = new ArrayList<>(samples.size());
-//            List<Double> currents = new ArrayList<>(samples.size());
-//            List<Double> temperatures = new ArrayList<>(samples.size());
-//            List<Timestamp> timestamps = new ArrayList<>(samples.size());
-//            for (Sample sample : samples) {
-//                voltages.add(sample.getVoltage());
-//                currents.add(sample.getCurrent());
-//                temperatures.add(sample.getTemperature());
-//                timestamps.add(sample.getTimestamp());
-//            }
-//
-//            Image voltageChart = createChart(timestamps, voltages, "Napięcie", "V");
-//            Image currentChart = createChart(timestamps, currents, "Prąd", "A");
-//            Image temperatureChart = createChart(timestamps, temperatures, "Temperatura", "°C");
-//
-//            voltageChart.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
-//            currentChart.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
-//            temperatureChart.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
-//
-//            Paragraph graphs = new Paragraph();
-//            graphs.add(voltageChart);
-//            graphs.add(currentChart);
-//            graphs.add(temperatureChart);
-//            document.add(graphs);
-//            document.close();
-//        };
-//        return ResponseEntity.status(HttpStatus.OK)
-//                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE)
-//                .header(HttpHeaders.CONTENT_DISPOSITION, "inline;")// filename=\"Raport" + process.getId() + ".pdf\"")
-//                .body(responseBody);
-//    }
+    @GetMapping(value = "{processId}/report", produces = MediaType.APPLICATION_PDF_VALUE)
+    ResponseEntity<StreamingResponseBody> testReport(@PathVariable long processId) {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Process process = processRepository.findById(processId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Process not found.")
+        );
+        StreamingResponseBody responseBody = (OutputStream outputStream) -> {
+            BaseFont bf = BaseFont.createFont(BaseFont.HELVETICA, "Cp1252", false);
+            Document document = new Document();
+            PdfWriter.getInstance(document, outputStream);
+            HeaderFooter header = new HeaderFooter(
+                    new Phrase("Technologie Galwaniczne - Raport", new Font(bf)), false);
+            header.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+            document.setHeader(header);
+            document.open();
+            Table table = new Table(4);
+            table.setWidth(90);
+            table.setHorizontalAlignment(HorizontalAlignment.JUSTIFIED);
+            table.setPadding(2);
+            table.addCell(textToCell("Stanowisko:", HorizontalAlignment.RIGHT));
+            table.addCell(textToCell(process.getBath().getId()+"", HorizontalAlignment.LEFT));
+            table.addCell(textToCell(dateFormat.format(process.getStartTimestamp()), HorizontalAlignment.CENTER));
+            table.addCell(textToCell(dateFormat.format(process.getStopTimestamp()), HorizontalAlignment.CENTER));
+            Cell separatorCell = new Cell();
+            separatorCell.setColspan(4);
+            table.addCell(separatorCell);
+            table.addCell(textToCell("Firma:", HorizontalAlignment.RIGHT));
+            table.addCell(textToCell(process.getOrder().getClient().getCompanyName(), HorizontalAlignment.LEFT));
+            table.addCell(textToCell("Detal:", HorizontalAlignment.RIGHT));
+            table.addCell(textToCell(process.getElement().getName(), HorizontalAlignment.LEFT));
+            table.addCell(textToCell("Operator:", HorizontalAlignment.RIGHT));
+            table.addCell(textToCell(process.getOperator().getUsername(), HorizontalAlignment.LEFT));
+            table.addCell(textToCell("Zamowienie:", HorizontalAlignment.RIGHT));
+            table.addCell(textToCell(process.getOrder().getName(), HorizontalAlignment.LEFT));
+            String description = process.getDescription();
+            if(description == null) {
+                description = "";
+            }
+            Cell descriptionCell = textToCell("Opis: " + description, HorizontalAlignment.LEFT);
+            descriptionCell.setColspan(4);
+            table.addCell(separatorCell);
+            table.addCell(descriptionCell);
+            document.add(table);
 
+//            document.add(new Paragraph("Id: " + process.getId()));
+//            document.add(new Paragraph("Opis: " + process.getDescription()));
+//            document.add(new Paragraph("Początek: " + process.getStartTimestamp()));
+//            document.add(new Paragraph("Koniec: " + process.getStopTimestamp()));
+            List<Sample> samples = sampleRepository.findAllByProcessIdOrderByTimestampAsc(process.getId());
+            List<Double> voltages = new ArrayList<>(samples.size());
+            List<Double> currents = new ArrayList<>(samples.size());
+            List<Double> temperatures = new ArrayList<>(samples.size());
+            List<Timestamp> timestamps = new ArrayList<>(samples.size());
+            for (Sample sample : samples) {
+                voltages.add(sample.getVoltage());
+                currents.add(sample.getCurrent());
+                temperatures.add(sample.getTemperature());
+                timestamps.add(sample.getTimestamp());
+            }
+
+            Image voltageChart = createChart(timestamps, voltages, "Napięcie", "V");
+            Image currentChart = createChart(timestamps, currents, "Prąd", "A");
+            Image temperatureChart = createChart(timestamps, temperatures, "Temperatura", "°C");
+
+            voltageChart.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+            currentChart.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+            temperatureChart.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+
+            Paragraph graphs = new Paragraph();
+            graphs.add(voltageChart);
+            graphs.add(currentChart);
+            graphs.add(temperatureChart);
+            document.add(graphs);
+            document.close();
+        };
+        return ResponseEntity.status(HttpStatus.OK)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline;")// filename=\"Raport" + process.getId() + ".pdf\"")
+                .body(responseBody);
+    }
+*/
 }

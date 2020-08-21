@@ -26,6 +26,3 @@ hs_err_pid*
 *.properties
 
 target/
-!target/command.txt
-!target/setupDB.sql
-!target/rectifierBackend.bat

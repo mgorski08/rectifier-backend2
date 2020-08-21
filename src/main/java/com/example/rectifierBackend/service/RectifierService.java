@@ -5,6 +5,8 @@ import com.example.rectifierBackend.model.Process;
 import com.example.rectifierBackend.model.Sample;
 import com.example.rectifierBackend.repository.ProcessRepository;
 import com.example.rectifierBackend.repository.SampleRepository;
+import com.example.rectifierBackend.service.event.Event;
+import com.example.rectifierBackend.service.event.EventService;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,15 +31,18 @@ public class RectifierService {
     private final SampleRepository sampleRepository;
     private final ProcessRepository processRepository;
     private final RectifierDriver rectifierDriver;
+    private final EventService eventService;
     private final Map<Long, Set<BlockingQueue<Optional<Sample>>>> bqMap = new HashMap<>();
 
     @Autowired
     RectifierService(TaskScheduler taskScheduler, SampleRepository sampleRepository,
-                     ProcessRepository processRepository, @Qualifier(value = "serial") RectifierDriver rectifierDriver) {
+                     ProcessRepository processRepository, @Qualifier(value = "serial") RectifierDriver rectifierDriver,
+                     EventService eventService) {
         this.taskScheduler = taskScheduler;
         this.sampleRepository = sampleRepository;
         this.processRepository = processRepository;
         this.rectifierDriver = rectifierDriver;
+        this.eventService = eventService;
     }
 
     public void startProcess(long processId) {
@@ -57,6 +62,7 @@ public class RectifierService {
         runningProcesses.put(processId, scheduledFuture);
         process.setStartTimestamp(new Timestamp(System.currentTimeMillis()));
         processRepository.save(process);
+        eventService.dispatchEvent(new Event<>(Event.PROCESS_STARTED, process));
     }
 
     public void stopProcess(long processId) {
@@ -75,35 +81,6 @@ public class RectifierService {
         }
         runningProcesses.remove(processId);
         processRepository.save(process);
-    }
-
-    public void writeSamples(OutputStream outputStream, long processId) throws IOException {
-        JsonGenerator jsonGenerator = new JsonFactory().createGenerator(outputStream);
-        jsonGenerator.setCodec(new ObjectMapper());
-        BlockingQueue<Optional<Sample>> blockingQueue = new LinkedBlockingQueue<>();
-        Set<BlockingQueue<Optional<Sample>>> bqSet = bqMap.get(processId);
-        if(bqSet == null) return;
-        bqSet.add(blockingQueue);
-        Sample sample;
-        try {
-            while (true) {
-                try {
-                    sample = blockingQueue.take().orElse(null);
-                } catch (InterruptedException ie) {
-                    continue;
-                }
-                if (sample == null) break;
-                synchronized (bqMap) {
-                    jsonGenerator.writeRaw("data:");
-                    jsonGenerator.writeObject(sample);
-                    jsonGenerator.writeRaw("\n\n");
-                    jsonGenerator.flush();
-                }
-            }
-        } finally {
-            synchronized (bqSet) {
-                bqSet.remove(blockingQueue);
-            }
-        }
+        eventService.dispatchEvent(new Event<>(Event.PROCESS_STOPPED, process));
     }
 }
