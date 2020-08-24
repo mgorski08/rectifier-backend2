@@ -9,6 +9,8 @@ public class Bath {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private long id;
 
+    private String name;
+
     @ManyToOne
     private User user;
 
@@ -21,6 +23,14 @@ public class Bath {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public User getUser() {
