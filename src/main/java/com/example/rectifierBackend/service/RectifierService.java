@@ -1,8 +1,10 @@
 package com.example.rectifierBackend.service;
 
 import com.example.rectifierBackend.driver.RectifierDriver;
+import com.example.rectifierBackend.model.Bath;
 import com.example.rectifierBackend.model.Process;
 import com.example.rectifierBackend.model.Sample;
+import com.example.rectifierBackend.repository.BathRepository;
 import com.example.rectifierBackend.repository.ProcessRepository;
 import com.example.rectifierBackend.repository.SampleRepository;
 import com.example.rectifierBackend.service.event.Event;
@@ -26,30 +28,31 @@ import java.util.concurrent.ScheduledFuture;
 
 @Service
 public class RectifierService {
-    private static final long SAMPLE_RATE_MS = 2000;
-    private final Map<Long, ScheduledFuture<?>> runningProcesses = new HashMap<>();
+    private final Map<Long, Thread> runningProcesses = new HashMap<>();
     private final TaskScheduler taskScheduler;
     private final SampleRepository sampleRepository;
     private final ProcessRepository processRepository;
+    private final BathRepository bathRepository;
     private final RectifierDriver rectifierDriver;
     private final EventService eventService;
-    private final Map<Long, Set<BlockingQueue<Optional<Sample>>>> bqMap = new HashMap<>();
 
     @Autowired
     RectifierService(TaskScheduler taskScheduler, SampleRepository sampleRepository,
-                     ProcessRepository processRepository, @Qualifier(value = "serial") RectifierDriver rectifierDriver,
-                     EventService eventService) {
+                     ProcessRepository processRepository, @Qualifier(value = "mock") RectifierDriver rectifierDriver,
+                     EventService eventService, BathRepository bathRepository) {
         this.taskScheduler = taskScheduler;
         this.sampleRepository = sampleRepository;
         this.processRepository = processRepository;
         this.rectifierDriver = rectifierDriver;
         this.eventService = eventService;
+        this.bathRepository = bathRepository;
     }
 
     @Scheduled(fixedDelay = 100)
     public void queryBaths() {
         for (int i = 1; i < 8 ; ++i) {
             Sample sample = rectifierDriver.readSample(i);
+            sample.setBath(bathRepository.getOne((long) i));
             eventService.dispatchEvent(new Event<>(Event.SAMPLE_COLLECTED, sample));
             try {
                 Thread.sleep(10);
@@ -60,18 +63,26 @@ public class RectifierService {
     public void startProcess(long processId) {
         Process process = processRepository.findById(processId).orElseThrow(() -> new RuntimeException("Process " +
                 "doesn't exist."));
-        bqMap.put(processId, new HashSet<>());
-        ScheduledFuture<?> scheduledFuture = taskScheduler.scheduleAtFixedRate(() -> {
-            Sample sample = rectifierDriver.readSample(process.getBathId());
-            sample.setProcess(process);
-            sampleRepository.save(sample);
-            synchronized (bqMap.get(processId)) {
-                for (BlockingQueue<Optional<Sample>> queue : bqMap.get(processId)) {
-                    queue.add(Optional.of(sample));
+        Thread processThread = new Thread(() -> {
+            BlockingQueue<Event<?>> listener = new LinkedBlockingQueue<>();
+            eventService.registerListener(listener);
+            Event<?> event = null;
+            do {
+                while(event == null) {
+                    try {
+                        event = listener.take();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
-        }, SAMPLE_RATE_MS);
-        runningProcesses.put(processId, scheduledFuture);
+                if (event.getObject() instanceof Sample) {
+                    Sample sample = (Sample) event.getObject();
+                    sample.setProcess(process);
+                    sampleRepository.save(sample);
+                }
+            } while (!event.getType().equals(Event.PROCESS_STOPPED));
+        });
+        runningProcesses.put(processId, processThread);
         process.setStartTimestamp(new Timestamp(System.currentTimeMillis()));
         processRepository.save(process);
         eventService.dispatchEvent(new Event<>(Event.PROCESS_STARTED, process));
@@ -80,19 +91,11 @@ public class RectifierService {
     public void stopProcess(long processId) {
         Process process = processRepository.findById(processId).orElseThrow(() -> new RuntimeException("Process " +
                 "doesn't exist."));
-        ScheduledFuture<?> scheduledFuture = runningProcesses.get(processId);
         process.setStopTimestamp(new Timestamp(System.currentTimeMillis()));
-        if (scheduledFuture != null) scheduledFuture.cancel(false);
-        if(bqMap.get(processId) != null) {
-            synchronized (bqMap.get(processId)) {
-                for (BlockingQueue<Optional<Sample>> queue : bqMap.get(processId)) {
-                    queue.add(Optional.empty());
-                }
-                bqMap.remove(processId);
-            }
-        }
         runningProcesses.remove(processId);
         processRepository.save(process);
         eventService.dispatchEvent(new Event<>(Event.PROCESS_STOPPED, process));
     }
+
+
 }
