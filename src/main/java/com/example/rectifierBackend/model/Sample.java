@@ -17,8 +17,7 @@ public class Sample {
     @ManyToOne
     private Process process;
 
-    @ManyToOne
-    private Bath bath;
+    private long bathId;
 
     private double voltage;
     private double current;
@@ -41,12 +40,12 @@ public class Sample {
         this.process = process;
     }
 
-    public Bath getBath() {
-        return bath;
+    public long getBathId() {
+        return bathId;
     }
 
-    public void setBath(Bath bath) {
-        this.bath = bath;
+    public void setBathId(long bathId) {
+        this.bathId = bathId;
     }
 
     public double getVoltage() {

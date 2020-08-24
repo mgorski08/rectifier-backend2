@@ -28,31 +28,26 @@ import java.util.concurrent.ScheduledFuture;
 
 @Service
 public class RectifierService {
-    private final Map<Long, Thread> runningProcesses = new HashMap<>();
-    private final TaskScheduler taskScheduler;
     private final SampleRepository sampleRepository;
     private final ProcessRepository processRepository;
-    private final BathRepository bathRepository;
     private final RectifierDriver rectifierDriver;
     private final EventService eventService;
 
     @Autowired
-    RectifierService(TaskScheduler taskScheduler, SampleRepository sampleRepository,
+    RectifierService(SampleRepository sampleRepository,
                      ProcessRepository processRepository, @Qualifier(value = "mock") RectifierDriver rectifierDriver,
-                     EventService eventService, BathRepository bathRepository) {
-        this.taskScheduler = taskScheduler;
+                     EventService eventService) {
         this.sampleRepository = sampleRepository;
         this.processRepository = processRepository;
         this.rectifierDriver = rectifierDriver;
         this.eventService = eventService;
-        this.bathRepository = bathRepository;
     }
 
     @Scheduled(fixedDelay = 100)
     public void queryBaths() {
         for (int i = 1; i < 8 ; ++i) {
             Sample sample = rectifierDriver.readSample(i);
-            sample.setBath(bathRepository.getOne((long) i));
+            sample.setBathId(i);
             eventService.dispatchEvent(new Event<>(Event.SAMPLE_COLLECTED, sample));
             try {
                 Thread.sleep(10);
@@ -82,7 +77,6 @@ public class RectifierService {
                 }
             } while (!event.getType().equals(Event.PROCESS_STOPPED));
         });
-        runningProcesses.put(processId, processThread);
         process.setStartTimestamp(new Timestamp(System.currentTimeMillis()));
         processRepository.save(process);
         eventService.dispatchEvent(new Event<>(Event.PROCESS_STARTED, process));
@@ -92,7 +86,6 @@ public class RectifierService {
         Process process = processRepository.findById(processId).orElseThrow(() -> new RuntimeException("Process " +
                 "doesn't exist."));
         process.setStopTimestamp(new Timestamp(System.currentTimeMillis()));
-        runningProcesses.remove(processId);
         processRepository.save(process);
         eventService.dispatchEvent(new Event<>(Event.PROCESS_STOPPED, process));
     }
