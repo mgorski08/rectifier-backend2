@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -43,6 +44,17 @@ public class RectifierService {
         this.processRepository = processRepository;
         this.rectifierDriver = rectifierDriver;
         this.eventService = eventService;
+    }
+
+    @Scheduled(fixedDelay = 100)
+    public void queryBaths() {
+        for (int i = 1; i < 8 ; ++i) {
+            Sample sample = rectifierDriver.readSample(i);
+            eventService.dispatchEvent(new Event<>(Event.SAMPLE_COLLECTED, sample));
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException ignored) {}
+        }
     }
 
     public void startProcess(long processId) {
