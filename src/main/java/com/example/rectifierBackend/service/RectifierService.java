@@ -59,11 +59,11 @@ public class RectifierService {
         Process process = processRepository.findById(processId).orElseThrow(() -> new RuntimeException("Process " +
                 "doesn't exist."));
         Thread processThread = new Thread(() -> {
-            System.out.println("In thread");
             BlockingQueue<Event<?>> listener = new LinkedBlockingQueue<>();
             eventService.registerListener(listener);
             Event<?> event = null;
             do {
+                System.out.println("In loop");
                 while(event == null) {
                     try {
                         event = listener.take();
@@ -79,7 +79,6 @@ public class RectifierService {
             } while (!event.getType().equals(Event.PROCESS_STOPPED));
         });
         processThread.start();
-        System.out.println("In controller");
         process.setStartTimestamp(new Timestamp(System.currentTimeMillis()));
         processRepository.save(process);
         eventService.dispatchEvent(new Event<>(Event.PROCESS_STARTED, process));
