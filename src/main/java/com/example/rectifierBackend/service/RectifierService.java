@@ -70,7 +70,6 @@ public class RectifierService {
                         e.printStackTrace();
                     }
                 }
-                System.out.println(event);
                 if (event.getObject() instanceof Sample) {
                     Sample sample = (Sample) event.getObject();
                     sample.setProcess(process);
@@ -78,6 +77,7 @@ public class RectifierService {
                 }
             } while (!event.getType().equals(Event.PROCESS_STOPPED));
         });
+        processThread.start();
         process.setStartTimestamp(new Timestamp(System.currentTimeMillis()));
         processRepository.save(process);
         eventService.dispatchEvent(new Event<>(Event.PROCESS_STARTED, process));
