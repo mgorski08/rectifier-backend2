@@ -1,5 +1,6 @@
 package com.example.rectifierBackend.controller;
 
+import com.example.rectifierBackend.message.request.ProcessFilter;
 import com.example.rectifierBackend.model.Bath;
 import com.example.rectifierBackend.model.Process;
 import com.example.rectifierBackend.model.Sample;
@@ -95,25 +96,15 @@ public class ProcessController {
         return ResponseEntity.ok(processRepository.findAll());
     }
 
-    @GetMapping("byStart/{start}/{end}")
-    ResponseEntity<?> getByStart(@PathVariable Timestamp start, @PathVariable Timestamp stop) {
-        return ResponseEntity.ok(processRepository.findByStartTimestampBetween(start, stop));
+    @GetMapping("filtered")
+    ResponseEntity<?> getFiltered(@Valid @RequestBody ProcessFilter filter) {
+        return ResponseEntity.ok(
+                processRepository
+                        .findByInsertCodeIgnoreCaseContainingAndElementNameIgnoreCaseContaining(
+                                filter.getInsertCode(), filter.getElementName()
+                        )
+        );
     }
-
-    @GetMapping("byStop/{start}/{end}")
-    ResponseEntity<?> getByEnd(@PathVariable Timestamp start, @PathVariable Timestamp stop) {
-        return ResponseEntity.ok(processRepository.findByStopTimestampBetween(start, stop));
-    }
-
-    @GetMapping("byRanAt/{time}")
-    ResponseEntity<?> getByRanAt(@PathVariable Timestamp time) {
-        return ResponseEntity.ok(processRepository.findByStartTimestampLessThanAndStopTimestampGreaterThan(time, time));
-    }
-
-//    @GetMapping("byOrderId/{id}")
-//    ResponseEntity<?> getByOrderId(@PathVariable long id) {
-//        return ResponseEntity.ok(processRepository.findByOrderId(id));
-//    }
 
     @PostMapping("/start")
     ResponseEntity<?> startProcess(@Valid @RequestBody Process process) {
