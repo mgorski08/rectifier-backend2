@@ -38,7 +38,7 @@ public class RectifierService {
 
     @Scheduled(fixedDelay = 100)
     public void queryBaths() {
-        for (int i = 1; i < 8; ++i) {
+        for (int i = 1; i < 15; ++i) {
             Sample sample = rectifierDriver.readSample(i);
             sample.setBathId(i);
             eventService.dispatchEvent(new Event<>(Event.SAMPLE_COLLECTED, sample));
@@ -48,6 +48,7 @@ public class RectifierService {
             }
         }
     }
+
 
     public void startProcess(long processId) {
         Process process = processRepository.findById(processId).orElseThrow(() -> new RuntimeException("Process " +
