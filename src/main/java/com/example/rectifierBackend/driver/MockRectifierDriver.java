@@ -14,8 +14,13 @@ public class MockRectifierDriver implements RectifierDriver {
     @Override
     public Sample readSample(long bathId) {
         Sample sample = new Sample();
-        sample.setCurrent(15 + random.nextGaussian());
-        sample.setVoltage(12 + random.nextGaussian());
+        if(bathId == 10) {
+            sample.setCurrent(0);
+            sample.setVoltage(0);
+        } else {
+            sample.setCurrent(15 + random.nextGaussian());
+            sample.setVoltage(12 + random.nextGaussian());
+        }
         sample.setTemperature(30 + random.nextGaussian());
         sample.setTimestamp(new Timestamp(System.currentTimeMillis()));
         try {
