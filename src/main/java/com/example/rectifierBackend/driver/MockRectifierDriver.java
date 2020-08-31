@@ -20,8 +20,7 @@ public class MockRectifierDriver implements RectifierDriver {
         sample.setTimestamp(new Timestamp(System.currentTimeMillis()));
         try {
             Thread.sleep(100);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        } catch (InterruptedException ignored) {
         }
         return sample;
     }

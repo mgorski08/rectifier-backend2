@@ -63,7 +63,6 @@ public class RectifierService {
             eventService.registerListener(listener);
             Event<?> event = null;
             do {
-                System.out.println("In loop");
                 while(event == null) {
                     try {
                         event = listener.take();
@@ -73,8 +72,11 @@ public class RectifierService {
                 }
                 if (event.getObject() instanceof Sample) {
                     Sample sample = (Sample) event.getObject();
+                    System.out.println(sample.getCurrent());
                     sample.setProcess(process);
                     sampleRepository.save(sample);
+                } else {
+                    System.out.println("abc");
                 }
             } while (!event.getType().equals(Event.PROCESS_STOPPED));
         });
