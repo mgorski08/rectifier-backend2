@@ -203,14 +203,12 @@ public class ProcessController {
             header.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
             document.setHeader(header);
             document.open();
-            Table table = new Table(8);
+            Table table = new Table(6);
             table.setWidth(90);
             table.setHorizontalAlignment(HorizontalAlignment.JUSTIFIED);
             table.setPadding(2);
-            table.addCell(textToCell("Proces:", HorizontalAlignment.RIGHT));
-            table.addCell(textToCell(processId + "", HorizontalAlignment.LEFT));
-            table.addCell(textToCell("Stanowisko:", HorizontalAlignment.RIGHT));
-            table.addCell(textToCell(bath.getName() + "", HorizontalAlignment.LEFT));
+            table.addCell(textToCell("Proces: " + processId, HorizontalAlignment.CENTER));
+            table.addCell(textToCell("Stanowisko: " + bath.getName(), HorizontalAlignment.CENTER));
             Cell startCell = textToCell(dateFormat.format(process.getStartTimestamp()), HorizontalAlignment.CENTER);
             startCell.setColspan(2);
             table.addCell(startCell);
@@ -218,7 +216,7 @@ public class ProcessController {
             stopCell.setColspan(2);
             table.addCell(stopCell);
             Cell separatorCell = new Cell();
-            separatorCell.setColspan(8);
+            separatorCell.setColspan(6);
             table.addCell(separatorCell);
             table.addCell(textToCell("Kod wkladu:", HorizontalAlignment.RIGHT));
             table.addCell(textToCell(process.getInsertCode() + "", HorizontalAlignment.LEFT));
