@@ -193,6 +193,8 @@ public class ProcessController {
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Process process =
                 processRepository.findById(processId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Process not found."));
+        Bath bath =
+                bathRepository.findById(process.getBathId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bath not found."));
         StreamingResponseBody responseBody = (OutputStream outputStream) -> {
             BaseFont bf = BaseFont.createFont(BaseFont.HELVETICA, "Cp1252", false);
             Document document = new Document();
@@ -201,39 +203,39 @@ public class ProcessController {
             header.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
             document.setHeader(header);
             document.open();
-            Table table = new Table(4);
+            Table table = new Table(8);
             table.setWidth(90);
             table.setHorizontalAlignment(HorizontalAlignment.JUSTIFIED);
             table.setPadding(2);
+            table.addCell(textToCell("Proces:", HorizontalAlignment.RIGHT));
+            table.addCell(textToCell(processId + "", HorizontalAlignment.LEFT));
             table.addCell(textToCell("Stanowisko:", HorizontalAlignment.RIGHT));
-            table.addCell(textToCell(process.getBathId() + "", HorizontalAlignment.LEFT));
-            table.addCell(textToCell(dateFormat.format(process.getStartTimestamp()), HorizontalAlignment.CENTER));
-            table.addCell(textToCell(dateFormat.format(process.getStopTimestamp()), HorizontalAlignment.CENTER));
+            table.addCell(textToCell(bath.getName() + "", HorizontalAlignment.LEFT));
+            Cell startCell = textToCell(dateFormat.format(process.getStartTimestamp()), HorizontalAlignment.CENTER);
+            startCell.setColspan(2);
+            table.addCell(startCell);
+            Cell stopCell = textToCell(dateFormat.format(process.getStopTimestamp()), HorizontalAlignment.CENTER);
+            stopCell.setColspan(2);
+            table.addCell(stopCell);
             Cell separatorCell = new Cell();
-            separatorCell.setColspan(4);
+            separatorCell.setColspan(8);
             table.addCell(separatorCell);
-            table.addCell(textToCell("Firma:", HorizontalAlignment.RIGHT));
-            table.addCell(textToCell("", HorizontalAlignment.LEFT));
-            table.addCell(textToCell("Detal:", HorizontalAlignment.RIGHT));
+            table.addCell(textToCell("Kod wkladu:", HorizontalAlignment.RIGHT));
+            table.addCell(textToCell(process.getInsertCode() + "", HorizontalAlignment.LEFT));
+            table.addCell(textToCell("Nazwa elementu:", HorizontalAlignment.RIGHT));
             table.addCell(textToCell(process.getElementName(), HorizontalAlignment.LEFT));
+            table.addCell(textToCell("Numer rysunku:", HorizontalAlignment.RIGHT));
+            table.addCell(textToCell(process.getDrawingNumber(), HorizontalAlignment.LEFT));
+            table.addCell(textToCell("Numer zlecenia:", HorizontalAlignment.RIGHT));
+            table.addCell(textToCell(process.getOrderNumber(), HorizontalAlignment.LEFT));
+            table.addCell(textToCell("Operacja:", HorizontalAlignment.RIGHT));
+            table.addCell(textToCell(process.getOperation(), HorizontalAlignment.LEFT));
+            table.addCell(textToCell("Monter:", HorizontalAlignment.RIGHT));
+            table.addCell(textToCell(process.getMonter(), HorizontalAlignment.LEFT));
             table.addCell(textToCell("Operator:", HorizontalAlignment.RIGHT));
             table.addCell(textToCell(process.getOperator().getUsername(), HorizontalAlignment.LEFT));
-            table.addCell(textToCell("Zamowienie:", HorizontalAlignment.RIGHT));
-            table.addCell(textToCell(process.getOrderNumber(), HorizontalAlignment.LEFT));
-            String description = process.getDescription();
-            if (description == null) {
-                description = "";
-            }
-            Cell descriptionCell = textToCell("Opis: " + description, HorizontalAlignment.LEFT);
-            descriptionCell.setColspan(4);
-            table.addCell(separatorCell);
-            table.addCell(descriptionCell);
             document.add(table);
 
-//            document.add(new Paragraph("Id: " + process.getId()));
-//            document.add(new Paragraph("Opis: " + process.getDescription()));
-//            document.add(new Paragraph("Początek: " + process.getStartTimestamp()));
-//            document.add(new Paragraph("Koniec: " + process.getStopTimestamp()));
             List<Sample> samples = sampleRepository.findAllByProcessIdOrderByTimestampAsc(process.getId());
             List<Double> voltages = new ArrayList<>(samples.size());
             List<Double> currents = new ArrayList<>(samples.size());
