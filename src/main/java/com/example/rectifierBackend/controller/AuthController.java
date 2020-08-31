@@ -25,7 +25,7 @@ import java.util.Set;
 @RestController
 @CrossOrigin
 public class AuthController {
-    private static final long JWT_EXPIRATION = 3600000; //milliseconds
+    private static final long JWT_EXPIRATION = 3600000*12; //milliseconds
 
     private final AuthenticationManager authenticationManager;
     private final JwtProvider jwtProvider;
