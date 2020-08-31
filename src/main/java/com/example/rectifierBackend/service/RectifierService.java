@@ -61,8 +61,10 @@ public class RectifierService {
                     event = listener.take();
                     if (event.getObject() instanceof Sample) {
                         Sample sample = (Sample) event.getObject();
-                        sample.setProcess(process);
-                        sampleRepository.save(sample);
+                        if(sample.getBathId() == process.getBathId()) {
+                            sample.setProcess(process);
+                            sampleRepository.save(sample);
+                        }
                     }
                 } while (!event.getType().equals(Event.PROCESS_STOPPED));
             } catch (Exception e) {
