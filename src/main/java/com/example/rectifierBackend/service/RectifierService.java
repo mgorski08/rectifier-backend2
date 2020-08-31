@@ -59,18 +59,10 @@ public class RectifierService {
             try {
                 do {
                     event = listener.take();
-                    logger.error("Took: ");
-                    logger.error(event);
-                    logger.error("Event is: ");
-                    logger.error(event.getType());
                     if (event.getObject() instanceof Sample) {
                         Sample sample = (Sample) event.getObject();
                         sample.setProcess(process);
                         sampleRepository.save(sample);
-                    }
-                    try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException ignored) {
                     }
                 } while (!event.getType().equals(Event.PROCESS_STOPPED));
             } catch (Exception e) {
