@@ -2,19 +2,25 @@ package com.example.rectifierBackend.controller;
 
 import com.example.rectifierBackend.model.Bath;
 import com.example.rectifierBackend.model.Process;
+import com.example.rectifierBackend.model.Sample;
 import com.example.rectifierBackend.model.User;
 import com.example.rectifierBackend.repository.BathRepository;
 import com.example.rectifierBackend.repository.ProcessRepository;
 import com.example.rectifierBackend.repository.SampleRepository;
 import com.example.rectifierBackend.service.RectifierService;
-import com.lowagie.text.Cell;
+import com.lowagie.text.*;
+import com.lowagie.text.Font;
 import com.lowagie.text.Image;
-import com.lowagie.text.Paragraph;
 import com.lowagie.text.alignment.HorizontalAlignment;
 import com.lowagie.text.alignment.VerticalAlignment;
+import com.lowagie.text.pdf.BaseFont;
+import com.lowagie.text.pdf.PdfWriter;
 import org.apache.catalina.connector.ClientAbortException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.knowm.xchart.XYChart;
+import org.knowm.xchart.XYSeries;
+import org.knowm.xchart.style.markers.Marker;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -32,6 +38,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 
 @RequestMapping("/process")
@@ -159,8 +168,6 @@ public class ProcessController {
         return ResponseEntity.noContent().build();
     }
 
-
-/*
     private Image createChart(List<?> xData, List<? extends Number> yData, String title, String unit) throws IOException {
         XYChart chart = new XYChart(750, 300);
         chart.setTitle(title);
@@ -231,20 +238,20 @@ public class ProcessController {
             table.setHorizontalAlignment(HorizontalAlignment.JUSTIFIED);
             table.setPadding(2);
             table.addCell(textToCell("Stanowisko:", HorizontalAlignment.RIGHT));
-            table.addCell(textToCell(process.getBath().getId()+"", HorizontalAlignment.LEFT));
+            table.addCell(textToCell(process.getBathId()+"", HorizontalAlignment.LEFT));
             table.addCell(textToCell(dateFormat.format(process.getStartTimestamp()), HorizontalAlignment.CENTER));
             table.addCell(textToCell(dateFormat.format(process.getStopTimestamp()), HorizontalAlignment.CENTER));
             Cell separatorCell = new Cell();
             separatorCell.setColspan(4);
             table.addCell(separatorCell);
             table.addCell(textToCell("Firma:", HorizontalAlignment.RIGHT));
-            table.addCell(textToCell(process.getOrder().getClient().getCompanyName(), HorizontalAlignment.LEFT));
+            table.addCell(textToCell("", HorizontalAlignment.LEFT));
             table.addCell(textToCell("Detal:", HorizontalAlignment.RIGHT));
-            table.addCell(textToCell(process.getElement().getName(), HorizontalAlignment.LEFT));
+            table.addCell(textToCell(process.getElementName(), HorizontalAlignment.LEFT));
             table.addCell(textToCell("Operator:", HorizontalAlignment.RIGHT));
             table.addCell(textToCell(process.getOperator().getUsername(), HorizontalAlignment.LEFT));
             table.addCell(textToCell("Zamowienie:", HorizontalAlignment.RIGHT));
-            table.addCell(textToCell(process.getOrder().getName(), HorizontalAlignment.LEFT));
+            table.addCell(textToCell(process.getOrderNumber(), HorizontalAlignment.LEFT));
             String description = process.getDescription();
             if(description == null) {
                 description = "";
@@ -291,5 +298,4 @@ public class ProcessController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline;")// filename=\"Raport" + process.getId() + ".pdf\"")
                 .body(responseBody);
     }
-*/
 }
