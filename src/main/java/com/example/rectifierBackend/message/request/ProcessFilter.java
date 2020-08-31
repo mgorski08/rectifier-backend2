@@ -2,11 +2,17 @@ package com.example.rectifierBackend.message.request;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
+import java.sql.Timestamp;
 
 public class ProcessFilter {
 
     private String insertCode;
     private String elementName;
+    private String drawingNumber;
+    private String orderNumber;
+    private String monter;
+    private Timestamp timeFrom;
+    private Timestamp timeTo;
 
     public String getInsertCode() {
         return insertCode;
@@ -22,5 +28,45 @@ public class ProcessFilter {
 
     public void setElementName(String elementName) {
         this.elementName = elementName;
+    }
+
+    public String getDrawingNumber() {
+        return drawingNumber;
+    }
+
+    public void setDrawingNumber(String drawingNumber) {
+        this.drawingNumber = drawingNumber;
+    }
+
+    public String getOrderNumber() {
+        return orderNumber;
+    }
+
+    public void setOrderNumber(String orderNumber) {
+        this.orderNumber = orderNumber;
+    }
+
+    public String getMonter() {
+        return monter;
+    }
+
+    public void setMonter(String monter) {
+        this.monter = monter;
+    }
+
+    public Timestamp getTimeFrom() {
+        return timeFrom;
+    }
+
+    public void setTimeFrom(Timestamp timeFrom) {
+        this.timeFrom = timeFrom;
+    }
+
+    public Timestamp getTimeTo() {
+        return timeTo;
+    }
+
+    public void setTimeTo(Timestamp timeTo) {
+        this.timeTo = timeTo;
     }
 }

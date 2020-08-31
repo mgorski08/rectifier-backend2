@@ -98,12 +98,7 @@ public class ProcessController {
 
     @PostMapping("filter")
     ResponseEntity<?> postFilter(@Valid @RequestBody ProcessFilter filter) {
-        return ResponseEntity.ok(
-                processRepository
-                        .findByInsertCodeIgnoreCaseContainingAndElementNameIgnoreCaseContaining(
-                                filter.getInsertCode(), filter.getElementName()
-                        )
-        );
+        return ResponseEntity.ok(processRepository.findByInsertCodeIgnoreCaseContainingAndElementNameIgnoreCaseContainingAndDrawingNumberIgnoreCaseContainingAndOrderNumberIgnoreCaseContainingAndMonterIgnoreCaseContainingAndStopTimestampGreaterThanAndStartTimestampLessThan(filter.getInsertCode(), filter.getElementName(), filter.getDrawingNumber(), filter.getOrderNumber(), filter.getMonter(), filter.getTimeFrom(), filter.getTimeTo()));
     }
 
     @PostMapping("/start")
