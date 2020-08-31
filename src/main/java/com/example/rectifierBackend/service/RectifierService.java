@@ -66,17 +66,18 @@ public class RectifierService {
                 while(event == null) {
                     try {
                         event = listener.take();
+                        System.out.print("Took: ");
+                        System.out.println(event);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
+                System.out.print("Event is: ");
+                System.out.println(event.getType());
                 if (event.getObject() instanceof Sample) {
                     Sample sample = (Sample) event.getObject();
-                    System.out.println(sample.getCurrent());
                     sample.setProcess(process);
                     sampleRepository.save(sample);
-                } else {
-                    System.out.println("abc");
                 }
             } while (!event.getType().equals(Event.PROCESS_STOPPED));
         });
