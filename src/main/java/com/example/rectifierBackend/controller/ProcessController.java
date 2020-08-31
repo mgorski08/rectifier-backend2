@@ -96,8 +96,8 @@ public class ProcessController {
         return ResponseEntity.ok(processRepository.findAll());
     }
 
-    @GetMapping("filtered")
-    ResponseEntity<?> getFiltered(@Valid @RequestBody ProcessFilter filter) {
+    @PostMapping("filter")
+    ResponseEntity<?> postFilter(@Valid @RequestBody ProcessFilter filter) {
         return ResponseEntity.ok(
                 processRepository
                         .findByInsertCodeIgnoreCaseContainingAndElementNameIgnoreCaseContaining(
