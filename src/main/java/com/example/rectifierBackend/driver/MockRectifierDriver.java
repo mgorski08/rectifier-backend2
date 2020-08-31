@@ -19,7 +19,7 @@ public class MockRectifierDriver implements RectifierDriver {
         sample.setTemperature(30 + random.nextGaussian());
         sample.setTimestamp(new Timestamp(System.currentTimeMillis()));
         try {
-            Thread.sleep(100);
+            Thread.sleep(300);
         } catch (InterruptedException ignored) {
         }
         return sample;
