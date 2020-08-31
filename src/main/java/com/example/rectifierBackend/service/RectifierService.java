@@ -79,6 +79,10 @@ public class RectifierService {
                     sample.setProcess(process);
                     sampleRepository.save(sample);
                 }
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException ignored) {
+                }
             } while (!event.getType().equals(Event.PROCESS_STOPPED));
         });
         processThread.start();
