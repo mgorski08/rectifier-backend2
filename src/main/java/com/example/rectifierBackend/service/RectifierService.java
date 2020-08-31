@@ -75,7 +75,6 @@ public class RectifierService {
         processThread.start();
         process.setStartTimestamp(new Timestamp(System.currentTimeMillis()));
         processRepository.save(process);
-        eventService.dispatchEvent(new Event<>(Event.PROCESS_STARTED, process));
     }
 
     public void stopProcess(long processId) {
@@ -83,7 +82,6 @@ public class RectifierService {
                 "doesn't exist."));
         process.setStopTimestamp(new Timestamp(System.currentTimeMillis()));
         processRepository.save(process);
-        eventService.dispatchEvent(new Event<>(Event.PROCESS_STOPPED, process));
     }
 
 

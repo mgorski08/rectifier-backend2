@@ -8,14 +8,15 @@ import com.example.rectifierBackend.repository.BathRepository;
 import com.example.rectifierBackend.repository.ProcessRepository;
 import com.example.rectifierBackend.repository.SampleRepository;
 import com.example.rectifierBackend.service.RectifierService;
-import com.lowagie.text.*;
+import com.example.rectifierBackend.service.event.Event;
+import com.example.rectifierBackend.service.event.EventService;
 import com.lowagie.text.Font;
 import com.lowagie.text.Image;
+import com.lowagie.text.*;
 import com.lowagie.text.alignment.HorizontalAlignment;
 import com.lowagie.text.alignment.VerticalAlignment;
 import com.lowagie.text.pdf.BaseFont;
 import com.lowagie.text.pdf.PdfWriter;
-import org.apache.catalina.connector.ClientAbortException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.knowm.xchart.XYChart;
@@ -52,33 +53,29 @@ public class ProcessController {
     private final BathRepository bathRepository;
     private final SampleRepository sampleRepository;
     private final RectifierService rectifierService;
+    private final EventService eventService;
     private final Log logger = LogFactory.getLog(getClass());
 
-    public ProcessController(ProcessRepository processRepository,
-                             BathRepository bathRepository,
-                             SampleRepository sampleRepository,
-                             RectifierService rectifierService) {
+    public ProcessController(ProcessRepository processRepository, BathRepository bathRepository,
+                             SampleRepository sampleRepository, RectifierService rectifierService,
+                             EventService eventService) {
         this.processRepository = processRepository;
         this.bathRepository = bathRepository;
         this.sampleRepository = sampleRepository;
         this.rectifierService = rectifierService;
+        this.eventService = eventService;
     }
 
     @GetMapping("{processId}")
     ResponseEntity<?> getOne(@PathVariable long processId) {
-        Process process = processRepository
-                .findById(processId)
-                .orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Process not found.")
-                );
+        Process process =
+                processRepository.findById(processId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Process not found."));
         return ResponseEntity.ok(process);
     }
 
     @GetMapping("{processId}/samples")
     ResponseEntity<?> getSamples(@PathVariable long processId) {
-        return ResponseEntity.ok(sampleRepository
-                .findAllByProcessIdOrderByTimestampAsc(processId)
-        );
+        return ResponseEntity.ok(sampleRepository.findAllByProcessIdOrderByTimestampAsc(processId));
     }
 
     @DeleteMapping("{processId}")
@@ -120,14 +117,9 @@ public class ProcessController {
 
     @PostMapping("/start")
     ResponseEntity<?> startProcess(@Valid @RequestBody Process process) {
-        User user = User.getCurrentUser().orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED)
-        );
-        Bath bath = bathRepository
-                .findById(process.getBathId())
-                .orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bath not found")
-                );
+        User user = User.getCurrentUser().orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        Bath bath =
+                bathRepository.findById(process.getBathId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bath not found"));
 //        if(bath.getUser() == null || bath.getUser().getId() != user.getId()) {
 //            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bath not occupied by current user");
 //        }
@@ -140,31 +132,26 @@ public class ProcessController {
         processRepository.save(process);
         bathRepository.save(bath);
         rectifierService.startProcess(process.getId());
+        eventService.dispatchEvent(new com.example.rectifierBackend.service.event.Event<>(Event.PROCESS_STARTED,
+                process));
         return ResponseEntity.ok(process);
     }
 
     @PostMapping("/{processId}/stop")
     ResponseEntity<?> stopProcess(@PathVariable long processId) {
-        User user = User.getCurrentUser().orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED)
-        );
+        User user = User.getCurrentUser().orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
 
-        Process process = processRepository
-                .findById(processId)
-                .orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Process not found.")
-                );
-        Bath bath = bathRepository
-                .findById(process.getBathId())
-                .orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bath not found.")
-                );
+        Process process =
+                processRepository.findById(processId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Process not found."));
+        Bath bath =
+                bathRepository.findById(process.getBathId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bath not found."));
         if (process.getOperator() == null || process.getOperator().getId() != user.getId()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Process not started by current user");
         }
         rectifierService.stopProcess(processId);
         bath.setProcess(null);
         bathRepository.save(bath);
+        eventService.dispatchEvent(new Event<>(Event.PROCESS_STOPPED, process));
         return ResponseEntity.noContent().build();
     }
 
@@ -187,11 +174,8 @@ public class ProcessController {
         double scaleFactor = 3;
         float finalScaleFactor = 0.7f;
 
-        BufferedImage bufferedImage =
-                new BufferedImage(
-                        (int) (chart.getWidth() * scaleFactor),
-                        (int) (chart.getHeight() * scaleFactor),
-                        BufferedImage.TYPE_INT_RGB);
+        BufferedImage bufferedImage = new BufferedImage((int) (chart.getWidth() * scaleFactor),
+                (int) (chart.getHeight() * scaleFactor), BufferedImage.TYPE_INT_RGB);
         Graphics2D graphics2D = bufferedImage.createGraphics();
 
         AffineTransform at = graphics2D.getTransform();
@@ -221,15 +205,13 @@ public class ProcessController {
     @GetMapping(value = "{processId}/report", produces = MediaType.APPLICATION_PDF_VALUE)
     ResponseEntity<StreamingResponseBody> testReport(@PathVariable long processId) {
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Process process = processRepository.findById(processId).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Process not found.")
-        );
+        Process process =
+                processRepository.findById(processId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Process not found."));
         StreamingResponseBody responseBody = (OutputStream outputStream) -> {
             BaseFont bf = BaseFont.createFont(BaseFont.HELVETICA, "Cp1252", false);
             Document document = new Document();
             PdfWriter.getInstance(document, outputStream);
-            HeaderFooter header = new HeaderFooter(
-                    new Phrase("Technologie Galwaniczne - Raport", new Font(bf)), false);
+            HeaderFooter header = new HeaderFooter(new Phrase("Technologie Galwaniczne - Raport", new Font(bf)), false);
             header.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
             document.setHeader(header);
             document.open();
@@ -238,7 +220,7 @@ public class ProcessController {
             table.setHorizontalAlignment(HorizontalAlignment.JUSTIFIED);
             table.setPadding(2);
             table.addCell(textToCell("Stanowisko:", HorizontalAlignment.RIGHT));
-            table.addCell(textToCell(process.getBathId()+"", HorizontalAlignment.LEFT));
+            table.addCell(textToCell(process.getBathId() + "", HorizontalAlignment.LEFT));
             table.addCell(textToCell(dateFormat.format(process.getStartTimestamp()), HorizontalAlignment.CENTER));
             table.addCell(textToCell(dateFormat.format(process.getStopTimestamp()), HorizontalAlignment.CENTER));
             Cell separatorCell = new Cell();
@@ -253,7 +235,7 @@ public class ProcessController {
             table.addCell(textToCell("Zamowienie:", HorizontalAlignment.RIGHT));
             table.addCell(textToCell(process.getOrderNumber(), HorizontalAlignment.LEFT));
             String description = process.getDescription();
-            if(description == null) {
+            if (description == null) {
                 description = "";
             }
             Cell descriptionCell = textToCell("Opis: " + description, HorizontalAlignment.LEFT);
@@ -293,9 +275,7 @@ public class ProcessController {
             document.add(graphs);
             document.close();
         };
-        return ResponseEntity.status(HttpStatus.OK)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline;")// filename=\"Raport" + process.getId() + ".pdf\"")
+        return ResponseEntity.status(HttpStatus.OK).header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE).header(HttpHeaders.CONTENT_DISPOSITION, "inline;")// filename=\"Raport" + process.getId() + ".pdf\"")
                 .body(responseBody);
     }
 }
