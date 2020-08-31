@@ -1,30 +1,22 @@
 package com.example.rectifierBackend.service;
 
 import com.example.rectifierBackend.driver.RectifierDriver;
-import com.example.rectifierBackend.model.Bath;
 import com.example.rectifierBackend.model.Process;
 import com.example.rectifierBackend.model.Sample;
-import com.example.rectifierBackend.repository.BathRepository;
 import com.example.rectifierBackend.repository.ProcessRepository;
 import com.example.rectifierBackend.repository.SampleRepository;
 import com.example.rectifierBackend.service.event.Event;
 import com.example.rectifierBackend.service.event.EventService;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.sql.Timestamp;
-import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledFuture;
 
 @Service
 public class RectifierService {
@@ -33,10 +25,11 @@ public class RectifierService {
     private final RectifierDriver rectifierDriver;
     private final EventService eventService;
 
+    private final Log logger = LogFactory.getLog(getClass());
+
     @Autowired
-    RectifierService(SampleRepository sampleRepository,
-                     ProcessRepository processRepository, @Qualifier(value = "mock") RectifierDriver rectifierDriver,
-                     EventService eventService) {
+    RectifierService(SampleRepository sampleRepository, ProcessRepository processRepository, @Qualifier(value = "mock"
+    ) RectifierDriver rectifierDriver, EventService eventService) {
         this.sampleRepository = sampleRepository;
         this.processRepository = processRepository;
         this.rectifierDriver = rectifierDriver;
@@ -45,13 +38,14 @@ public class RectifierService {
 
     @Scheduled(fixedDelay = 100)
     public void queryBaths() {
-        for (int i = 1; i < 8 ; ++i) {
+        for (int i = 1; i < 8; ++i) {
             Sample sample = rectifierDriver.readSample(i);
             sample.setBathId(i);
             eventService.dispatchEvent(new Event<>(Event.SAMPLE_COLLECTED, sample));
             try {
                 Thread.sleep(10);
-            } catch (InterruptedException ignored) {}
+            } catch (InterruptedException ignored) {
+            }
         }
     }
 
@@ -62,28 +56,26 @@ public class RectifierService {
             BlockingQueue<Event<?>> listener = new LinkedBlockingQueue<>();
             eventService.registerListener(listener);
             Event<?> event = null;
-            do {
-                while(event == null) {
-                    try {
-                        event = listener.take();
-                        System.out.print("Took: ");
-                        System.out.println(event);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+            try {
+                do {
+                    event = listener.take();
+                    logger.debug("Took: ");
+                    logger.debug(event);
+                    logger.debug("Event is: ");
+                    logger.debug(event.getType());
+                    if (event.getObject() instanceof Sample) {
+                        Sample sample = (Sample) event.getObject();
+                        sample.setProcess(process);
+                        sampleRepository.save(sample);
                     }
-                }
-                System.out.print("Event is: ");
-                System.out.println(event.getType());
-                if (event.getObject() instanceof Sample) {
-                    Sample sample = (Sample) event.getObject();
-                    sample.setProcess(process);
-                    sampleRepository.save(sample);
-                }
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException ignored) {
-                }
-            } while (!event.getType().equals(Event.PROCESS_STOPPED));
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException ignored) {
+                    }
+                } while (!event.getType().equals(Event.PROCESS_STOPPED));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
         processThread.start();
         process.setStartTimestamp(new Timestamp(System.currentTimeMillis()));
