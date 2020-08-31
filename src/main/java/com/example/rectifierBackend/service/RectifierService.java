@@ -59,10 +59,10 @@ public class RectifierService {
             try {
                 do {
                     event = listener.take();
-                    logger.debug("Took: ");
-                    logger.debug(event);
-                    logger.debug("Event is: ");
-                    logger.debug(event.getType());
+                    logger.error("Took: ");
+                    logger.error(event);
+                    logger.error("Event is: ");
+                    logger.error(event.getType());
                     if (event.getObject() instanceof Sample) {
                         Sample sample = (Sample) event.getObject();
                         sample.setProcess(process);
