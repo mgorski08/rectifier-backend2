@@ -6,6 +6,8 @@ public class Event<T> {
 
     public static final String PROCESS_STARTED = "processStarted";
     public static final String PROCESS_STOPPED = "processStopped";
+    public static final String STAND_OCCUPIED = "standOccupied";
+    public static final String STAND_FREED = "standFreed";
     public static final String SAMPLE_COLLECTED = "sampleCollected";
 
     public Event(String type, T object) {

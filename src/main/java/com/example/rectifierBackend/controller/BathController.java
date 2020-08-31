@@ -5,6 +5,8 @@ import com.example.rectifierBackend.model.User;
 import com.example.rectifierBackend.repository.BathRepository;
 import com.example.rectifierBackend.repository.ProcessRepository;
 import com.example.rectifierBackend.repository.UserRepository;
+import com.example.rectifierBackend.service.event.Event;
+import com.example.rectifierBackend.service.event.EventService;
 import com.fazecast.jSerialComm.SerialPort;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -18,9 +20,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class BathController {
 
     private final BathRepository bathRepository;
+    private final EventService eventService;
 
-    public BathController(BathRepository bathRepository) {
+    public BathController(BathRepository bathRepository, EventService eventService) {
         this.bathRepository = bathRepository;
+        this.eventService = eventService;
     }
 
     @GetMapping("{bathId}")
@@ -61,6 +65,7 @@ public class BathController {
         }
         bath.setUser(user);
         bathRepository.save(bath);
+        eventService.dispatchEvent(new Event<>(Event.STAND_OCCUPIED, bath));
         return ResponseEntity.noContent().build();
     }
 
@@ -77,6 +82,7 @@ public class BathController {
         }
         bath.setUser(null);
         bathRepository.save(bath);
+        eventService.dispatchEvent(new Event<>(Event.STAND_FREED, bath));
         return ResponseEntity.noContent().build();
     }
 
