@@ -25,6 +25,8 @@ public class Process {
 
     private String insertCode;
 
+    private String chromeType;
+
     private String elementName;
 
     private String operation;
@@ -34,8 +36,6 @@ public class Process {
     private String orderNumber;
 
     private String monter;
-
-    private String chromeType;
 
     @ManyToOne
     private User operator;
@@ -135,5 +135,13 @@ public class Process {
 
     public void setOperator(User operator) {
         this.operator = operator;
+    }
+
+    public String getChromeType() {
+        return chromeType;
+    }
+
+    public void setChromeType(String chromeType) {
+        this.chromeType = chromeType;
     }
 }

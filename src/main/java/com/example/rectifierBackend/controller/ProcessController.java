@@ -222,6 +222,8 @@ public class ProcessController {
             table.addCell(textToCell(process.getInsertCode() + "", HorizontalAlignment.LEFT));
             table.addCell(textToCell("Nazwa elementu:", HorizontalAlignment.RIGHT));
             table.addCell(textToCell(process.getElementName(), HorizontalAlignment.LEFT));
+            table.addCell(textToCell("Typ chromu:", HorizontalAlignment.RIGHT));
+            table.addCell(textToCell(process.getChromeType(), HorizontalAlignment.LEFT));
             table.addCell(textToCell("Numer rysunku:", HorizontalAlignment.RIGHT));
             table.addCell(textToCell(process.getDrawingNumber(), HorizontalAlignment.LEFT));
             table.addCell(textToCell("Numer zlecenia:", HorizontalAlignment.RIGHT));
