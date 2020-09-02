@@ -342,7 +342,7 @@ public class ProcessController {
             document.add(graphs);
             document.close();
         };
-        return ResponseEntity.status(HttpStatus.OK).header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE).header(HttpHeaders.CONTENT_DISPOSITION, "inline;")// filename=\"Raport" + process.getId() + ".pdf\"")
+        return ResponseEntity.status(HttpStatus.OK).header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE).header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Raport" + process.getId() + ".pdf\"")
                 .body(responseBody);
     }
 }
