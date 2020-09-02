@@ -18,27 +18,25 @@ public class Process {
     private long bathId;
 
     private String description;
-
     private Timestamp startTimestamp;
-
     private Timestamp stopTimestamp;
-
     private String insertCode;
-
     private String chromeType;
-
     private String elementName;
-
     private String operation;
-
     private String drawingNumber;
-
     private String orderNumber;
-
     private String monter;
-
     @ManyToOne
     private User operator;
+
+    private String description2;
+    private String insertCode2;
+    private String elementName2;
+    private String operation2;
+    private String drawingNumber2;
+    private String orderNumber2;
+    private String monter2;
 
 
     public long getId() {
@@ -143,5 +141,61 @@ public class Process {
 
     public void setChromeType(String chromeType) {
         this.chromeType = chromeType;
+    }
+
+    public String getDescription2() {
+        return description2;
+    }
+
+    public void setDescription2(String description2) {
+        this.description2 = description2;
+    }
+
+    public String getInsertCode2() {
+        return insertCode2;
+    }
+
+    public void setInsertCode2(String insertCode2) {
+        this.insertCode2 = insertCode2;
+    }
+
+    public String getElementName2() {
+        return elementName2;
+    }
+
+    public void setElementName2(String elementName2) {
+        this.elementName2 = elementName2;
+    }
+
+    public String getOperation2() {
+        return operation2;
+    }
+
+    public void setOperation2(String operation2) {
+        this.operation2 = operation2;
+    }
+
+    public String getDrawingNumber2() {
+        return drawingNumber2;
+    }
+
+    public void setDrawingNumber2(String drawingNumber2) {
+        this.drawingNumber2 = drawingNumber2;
+    }
+
+    public String getOrderNumber2() {
+        return orderNumber2;
+    }
+
+    public void setOrderNumber2(String orderNumber2) {
+        this.orderNumber2 = orderNumber2;
+    }
+
+    public String getMonter2() {
+        return monter2;
+    }
+
+    public void setMonter2(String monter2) {
+        this.monter2 = monter2;
     }
 }
