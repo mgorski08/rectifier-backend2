@@ -32,6 +32,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import javax.imageio.ImageIO;
+import javax.transaction.Transactional;
 import javax.validation.Valid;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
@@ -79,6 +80,7 @@ public class ProcessController {
         return ResponseEntity.ok(sampleRepository.findAllByProcessIdOrderByTimestampAsc(processId));
     }
 
+    @Transactional
     @DeleteMapping("{processId}")
     ResponseEntity<?> delete(@PathVariable long processId) {
         sampleRepository.deleteByProcessId(processId);
