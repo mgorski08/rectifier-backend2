@@ -13,5 +13,6 @@ public interface SampleRepository extends JpaRepository<Sample, Long> {
     List<Sample> findAll();
     List<Sample> findAllByProcessIdOrderByTimestampAsc(Long processId);
     Sample save(Sample sample);
+    void deleteByProcessId(Long id);
     void deleteById(Long id);
 }
