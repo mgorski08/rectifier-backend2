@@ -83,7 +83,7 @@ public class ProcessController {
 
     @DeleteMapping("{processId}")
     @Transactional
-    ResponseEntity<?> delete(@PathVariable long processId) {
+    public ResponseEntity<?> delete(@PathVariable long processId) {
         sampleRepository.deleteByProcessId(processId);
         processRepository.deleteById(processId);
         return ResponseEntity.noContent().build();
