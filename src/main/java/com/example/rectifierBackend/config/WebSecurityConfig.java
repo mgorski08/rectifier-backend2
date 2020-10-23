@@ -22,7 +22,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
-@EnableTransactionManagement
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     private UserRepository userRepository;
     private JwtAuthEntryPoint unauthorizedHandler;

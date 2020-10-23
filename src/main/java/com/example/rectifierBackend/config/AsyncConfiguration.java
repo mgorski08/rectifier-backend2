@@ -24,7 +24,6 @@ import java.util.concurrent.Callable;
 @Configuration
 @EnableAsync
 @EnableScheduling
-@EnableTransactionManagement
 public class AsyncConfiguration implements AsyncConfigurer {
 
     private final Logger log = LoggerFactory.getLogger(AsyncConfiguration.class);
