@@ -80,8 +80,9 @@ public class ProcessController {
         return ResponseEntity.ok(sampleRepository.findAllByProcessIdOrderByTimestampAsc(processId));
     }
 
-    @Transactional
+
     @DeleteMapping("{processId}")
+    @Transactional
     ResponseEntity<?> delete(@PathVariable long processId) {
         sampleRepository.deleteByProcessId(processId);
         processRepository.deleteById(processId);
