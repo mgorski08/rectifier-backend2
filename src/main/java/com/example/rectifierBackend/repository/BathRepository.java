@@ -13,5 +13,5 @@ public interface BathRepository extends JpaRepository<Bath, Long> {
     List<Bath> findAll();
     List<Bath> findAllByOrderByIdAsc();
     Bath save(Bath bath);
-    long deleteById(long id);
+    Long deleteById(long id);
 }
