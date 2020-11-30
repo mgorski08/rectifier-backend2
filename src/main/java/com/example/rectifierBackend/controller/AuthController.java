@@ -38,20 +38,17 @@ public class AuthController {
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginForm loginRequest) {
-        System.out.println(loginRequest.getUsername());
-        System.out.println("A");
+        //System.out.println(loginRequest.getUsername());
         Authentication authentication =
                 authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername()
                         , loginRequest.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        System.out.println("B");
         long iss = new Date().getTime();
         long exp = iss + JWT_EXPIRATION;
 
         String jwt = jwtProvider.generateJwtToken(authentication, iss, exp);
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        System.out.println("C");
         return ResponseEntity.ok(new JwtResponse(jwt, userDetails.getUsername(), exp, userDetails.getAuthorities()));
     }
 

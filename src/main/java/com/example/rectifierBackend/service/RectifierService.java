@@ -36,9 +36,9 @@ public class RectifierService {
         this.eventService = eventService;
     }
 
-    @Scheduled(fixedDelay = 300)
+    @Scheduled(fixedDelay = 200)
     public void queryBaths() {
-        for (int i = 1; i < 15; ++i) {
+        for (int i = 1; i <= 14; ++i) {
             Sample sample = rectifierDriver.readSample(i);
             sample.setBathId(i);
             eventService.dispatchEvent(new Event<>(Event.SAMPLE_COLLECTED, sample));

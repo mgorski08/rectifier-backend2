@@ -151,6 +151,7 @@ public class ProcessController {
         chart.setXAxisTitle("Czas");
         chart.setYAxisTitle(title + " [" + unit + "]");
         chart.getStyler().setLegendVisible(false);
+        chart.getStyler().setYAxisMin(0.0);
         XYSeries series = chart.addSeries(title, xData, yData);
         series.setMarker(new Marker() {
             @Override

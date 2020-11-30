@@ -23,6 +23,11 @@ public class Sample {
     private double current;
     private double temperature;
     private Timestamp timestamp;
+    private int status;
+
+    public Sample() {
+        status = 0;
+    }
 
     public long getId() {
         return id;
@@ -78,5 +83,13 @@ public class Sample {
 
     public void setTimestamp(Timestamp timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
     }
 }

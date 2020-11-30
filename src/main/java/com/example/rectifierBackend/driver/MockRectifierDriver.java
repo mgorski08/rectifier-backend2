@@ -18,7 +18,7 @@ public class MockRectifierDriver implements RectifierDriver {
             sample.setCurrent(0);
             sample.setVoltage(0);
         } else {
-            sample.setCurrent(15 + random.nextGaussian());
+            sample.setCurrent(10000 + 1000*random.nextGaussian());
             sample.setVoltage(12 + random.nextGaussian());
         }
         sample.setTemperature(30 + random.nextGaussian());

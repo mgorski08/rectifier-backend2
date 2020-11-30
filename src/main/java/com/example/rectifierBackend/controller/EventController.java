@@ -52,7 +52,7 @@ public class EventController {
                     jsonGenerator.flush();
                 } while (!event.getType().equals("End"));
             } catch (ClientAbortException cae) {
-                logger.info("Client disconnected while streaming.");
+                logger.debug("Client disconnected while streaming.");
             } catch (Exception e) {
                 logger.error("Error while streaming.", e);
             }
