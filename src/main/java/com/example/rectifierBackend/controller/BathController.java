@@ -1,5 +1,6 @@
 package com.example.rectifierBackend.controller;
 
+import com.example.rectifierBackend.message.request.BathUpdateForm;
 import com.example.rectifierBackend.model.Bath;
 import com.example.rectifierBackend.model.User;
 import com.example.rectifierBackend.repository.BathRepository;
@@ -8,6 +9,7 @@ import com.example.rectifierBackend.repository.UserRepository;
 import com.example.rectifierBackend.service.event.Event;
 import com.example.rectifierBackend.service.event.EventService;
 import com.fazecast.jSerialComm.SerialPort;
+import org.springframework.beans.BeanUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -92,4 +94,12 @@ public class BathController {
         return ResponseEntity.ok(bath);
     }
 
+    @PutMapping("{bathId}")
+    ResponseEntity<?> updateBath(@PathVariable long bathId, @RequestBody BathUpdateForm bathUpdateForm) {
+        Bath bath = bathRepository.findById(bathId).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Bath not found."));
+        BeanUtils.copyProperties(bathUpdateForm, bath);
+        bathRepository.save(bath);
+        return ResponseEntity.ok(bath);
+    }
 }

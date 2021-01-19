@@ -1,22 +1,6 @@
-package com.example.rectifierBackend.model;
+package com.example.rectifierBackend.message.request;
 
-import javax.persistence.*;
-import java.sql.Timestamp;
-
-@Entity
-@Table(name = "bath")
-public class Bath {
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private long id;
-
-    private String name;
-
-    @ManyToOne
-    private User user;
-
-    @OneToOne
-    private Process process;
+public class BathUpdateForm {
 
     private String description;
     private String insertCode;
@@ -34,39 +18,6 @@ public class Bath {
     private String drawingNumber2;
     private String orderNumber2;
     private String monter2;
-
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public Process getProcess() {
-        return process;
-    }
-
-    public void setProcess(Process process) {
-        this.process = process;
-    }
 
     public String getDescription() {
         return description;

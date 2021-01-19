@@ -1,6 +1,8 @@
 package com.example.rectifierBackend.controller;
 
+import com.example.rectifierBackend.message.request.BathUpdateForm;
 import com.example.rectifierBackend.message.request.ProcessFilter;
+import com.example.rectifierBackend.message.request.ProcessUpdateForm;
 import com.example.rectifierBackend.model.Bath;
 import com.example.rectifierBackend.model.Process;
 import com.example.rectifierBackend.model.Sample;
@@ -23,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.knowm.xchart.XYChart;
 import org.knowm.xchart.XYSeries;
 import org.knowm.xchart.style.markers.Marker;
+import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -44,6 +47,7 @@ import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @RequestMapping("/process")
@@ -81,6 +85,16 @@ public class ProcessController {
     }
 
 
+    @PutMapping("{processId}")
+    ResponseEntity<?> updateProcess(@PathVariable long processId, @RequestBody ProcessUpdateForm processUpdateForm) {
+        Process process = processRepository.findById(processId).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Process not found."));
+        BeanUtils.copyProperties(processUpdateForm, process);
+        processRepository.save(process);
+        return ResponseEntity.ok(process);
+    }
+
+
     @DeleteMapping("{processId}")
     @Transactional
     public ResponseEntity<?> delete(@PathVariable long processId) {
@@ -102,7 +116,14 @@ public class ProcessController {
 
     @PostMapping("filter")
     ResponseEntity<?> postFilter(@Valid @RequestBody ProcessFilter filter) {
-        return ResponseEntity.ok(processRepository.findByInsertCodeIgnoreCaseContainingAndElementNameIgnoreCaseContainingAndDrawingNumberIgnoreCaseContainingAndOrderNumberIgnoreCaseContainingAndMonterIgnoreCaseContainingAndStopTimestampGreaterThanAndStartTimestampLessThan(filter.getInsertCode(), filter.getElementName(), filter.getDrawingNumber(), filter.getOrderNumber(), filter.getMonter(), filter.getTimeFrom(), filter.getTimeTo()));
+        List<Process> retval;
+        try {
+            long bathId_long = Integer.parseInt(filter.getBathId());
+            retval = processRepository.findByInsertCodeIgnoreCaseContainingAndElementNameIgnoreCaseContainingAndDrawingNumberIgnoreCaseContainingAndOrderNumberIgnoreCaseContainingAndMonterIgnoreCaseContainingAndStopTimestampGreaterThanAndStartTimestampLessThanAndBathIdEquals(filter.getInsertCode(), filter.getElementName(), filter.getDrawingNumber(), filter.getOrderNumber(), filter.getMonter(), filter.getTimeFrom(), filter.getTimeTo(), bathId_long);
+        } catch (NumberFormatException ignored) {
+            retval = processRepository.findByInsertCodeIgnoreCaseContainingAndElementNameIgnoreCaseContainingAndDrawingNumberIgnoreCaseContainingAndOrderNumberIgnoreCaseContainingAndMonterIgnoreCaseContainingAndStopTimestampGreaterThanAndStartTimestampLessThan(filter.getInsertCode(), filter.getElementName(), filter.getDrawingNumber(), filter.getOrderNumber(), filter.getMonter(), filter.getTimeFrom(), filter.getTimeTo());
+        }
+        return ResponseEntity.ok(retval);
     }
 
     @PostMapping("/start")
@@ -116,7 +137,9 @@ public class ProcessController {
         if (bath.getProcess() != null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "A process is already started for this bath");
         }
-
+        BathUpdateForm bathUpdateForm = new BathUpdateForm();
+        BeanUtils.copyProperties(bath, bathUpdateForm);
+        BeanUtils.copyProperties(bathUpdateForm, process);
         bath.setProcess(process);
         process.setOperator(user);
         processRepository.save(process);
@@ -145,13 +168,19 @@ public class ProcessController {
         return ResponseEntity.noContent().build();
     }
 
-    private Image createChart(List<?> xData, List<? extends Number> yData, String title, String unit) throws IOException {
+    private Image createChart(List<?> xData, List<? extends Double> yData, String title, String unit) throws IOException {
         XYChart chart = new XYChart(750, 300);
         chart.setTitle(title);
         chart.setXAxisTitle("Czas");
         chart.setYAxisTitle(title + " [" + unit + "]");
         chart.getStyler().setLegendVisible(false);
         chart.getStyler().setYAxisMin(0.0);
+        chart.getStyler().setYAxisMax(Collections.max(yData)*1.15);
+        chart.getStyler().setChartPadding(10);
+        chart.getStyler().setPlotContentSize(0.98);
+        chart.getStyler().setPlotMargin(0);
+        chart.getStyler().setXAxisTitleVisible(false);
+        chart.getStyler().setDatePattern("HH:mm");
         XYSeries series = chart.addSeries(title, xData, yData);
         series.setMarker(new Marker() {
             @Override
@@ -248,13 +277,13 @@ public class ProcessController {
             List<Timestamp> timestamps = new ArrayList<>(samples.size());
             for (Sample sample : samples) {
                 voltages.add(sample.getVoltage());
-                currents.add(sample.getCurrent());
+                currents.add(sample.getCurrent()/1000.0);
                 temperatures.add(sample.getTemperature());
                 timestamps.add(sample.getTimestamp());
             }
 
             Image voltageChart = createChart(timestamps, voltages, "Napięcie", "V");
-            Image currentChart = createChart(timestamps, currents, "Prąd", "A");
+            Image currentChart = createChart(timestamps, currents, "Prąd", "kA");
             Image temperatureChart = createChart(timestamps, temperatures, "Temperatura", "°C");
 
             voltageChart.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
@@ -268,7 +297,7 @@ public class ProcessController {
             document.add(graphs);
             document.close();
         };
-        return ResponseEntity.status(HttpStatus.OK).header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE).header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Raport" + process.getId() + "_" + process.getInsertCode() + ".pdf\"")
+        return ResponseEntity.status(HttpStatus.OK).header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE).header(HttpHeaders.CONTENT_DISPOSITION, "inline")
                 .body(responseBody);
     }
 
@@ -327,13 +356,13 @@ public class ProcessController {
             List<Timestamp> timestamps = new ArrayList<>(samples.size());
             for (Sample sample : samples) {
                 voltages.add(sample.getVoltage());
-                currents.add(sample.getCurrent());
+                currents.add(sample.getCurrent()/1000.0);
                 temperatures.add(sample.getTemperature());
                 timestamps.add(sample.getTimestamp());
             }
 
             Image voltageChart = createChart(timestamps, voltages, "Napięcie", "V");
-            Image currentChart = createChart(timestamps, currents, "Prąd", "A");
+            Image currentChart = createChart(timestamps, currents, "Prąd", "kA");
             Image temperatureChart = createChart(timestamps, temperatures, "Temperatura", "°C");
 
             voltageChart.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
@@ -347,7 +376,7 @@ public class ProcessController {
             document.add(graphs);
             document.close();
         };
-        return ResponseEntity.status(HttpStatus.OK).header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE).header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Raport" + process.getId() + "_" + process.getInsertCode2() + ".pdf\"")
+        return ResponseEntity.status(HttpStatus.OK).header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE).header(HttpHeaders.CONTENT_DISPOSITION, "inline")
                 .body(responseBody);
     }
 }

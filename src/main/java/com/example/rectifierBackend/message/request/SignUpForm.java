@@ -7,13 +7,11 @@ import java.util.Set;
 public class SignUpForm {
 
     @NotBlank
-    @Size(min = 3, max = 50)
     private String username;
 
     private Set<String> roles;
 
     @NotBlank
-    @Size(min = 3, max = 40)
     private String password;
 
     private String firstName;

@@ -32,7 +32,7 @@ public class User implements UserDetails {
     public User() {
     }
 
-    public User(@NotBlank @Size(min = 3, max = 50) String username, @NotBlank @Size(min = 6, max = 100) String password) {
+    public User(@NotBlank String username, @NotBlank String password) {
         this.username = username;
         this.password = password;
     }

@@ -13,6 +13,7 @@ public class ProcessFilter {
     private String monter;
     private Timestamp timeFrom;
     private Timestamp timeTo;
+    private String bathId;
 
     public String getInsertCode() {
         return insertCode;
@@ -68,5 +69,13 @@ public class ProcessFilter {
 
     public void setTimeTo(Timestamp timeTo) {
         this.timeTo = timeTo;
+    }
+
+    public String getBathId() {
+        return bathId;
+    }
+
+    public void setBathId(String bathId) {
+        this.bathId = bathId;
     }
 }

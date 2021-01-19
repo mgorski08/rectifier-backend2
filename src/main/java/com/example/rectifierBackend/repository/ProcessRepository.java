@@ -18,6 +18,7 @@ public interface ProcessRepository extends JpaRepository<Process, Long> {
     List<Process> findByStopTimestampBetween(Timestamp after, Timestamp before);
     List<Process> findByStartTimestampLessThanAndStopTimestampGreaterThan(Timestamp t1, Timestamp t2);
     List<Process> findByInsertCodeIgnoreCaseContainingAndElementNameIgnoreCaseContainingAndDrawingNumberIgnoreCaseContainingAndOrderNumberIgnoreCaseContainingAndMonterIgnoreCaseContainingAndStopTimestampGreaterThanAndStartTimestampLessThan(String insertCode, String elementName, String drawingNumber, String orderNumber, String monter, Timestamp timeFrom, Timestamp timeTo);
+    List<Process> findByInsertCodeIgnoreCaseContainingAndElementNameIgnoreCaseContainingAndDrawingNumberIgnoreCaseContainingAndOrderNumberIgnoreCaseContainingAndMonterIgnoreCaseContainingAndStopTimestampGreaterThanAndStartTimestampLessThanAndBathIdEquals(String insertCode, String elementName, String drawingNumber, String orderNumber, String monter, Timestamp timeFrom, Timestamp timeTo, long bathId);
     Process save(Process process);
     Long deleteById(long id);
 }

@@ -14,6 +14,7 @@ public class MockRectifierDriver implements RectifierDriver {
     @Override
     public Sample readSample(long bathId) {
         Sample sample = new Sample();
+        sample.setStatus(10);
         if(bathId == 10) {
             sample.setCurrent(0);
             sample.setVoltage(0);
