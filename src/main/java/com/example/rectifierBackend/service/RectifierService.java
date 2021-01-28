@@ -28,7 +28,7 @@ public class RectifierService {
     private final Log logger = LogFactory.getLog(getClass());
 
     @Autowired
-    RectifierService(SampleRepository sampleRepository, ProcessRepository processRepository, @Qualifier(value = "mock"
+    RectifierService(SampleRepository sampleRepository, ProcessRepository processRepository, @Qualifier(value = "serial"
     ) RectifierDriver rectifierDriver, EventService eventService) {
         this.sampleRepository = sampleRepository;
         this.processRepository = processRepository;
